@@ -1,21 +1,18 @@
 package ru.entel.smiu.modbus;
 
 import com.ghgande.j2mod.modbus.ModbusCoupler;
-import com.ghgande.j2mod.modbus.ModbusException;
-import com.ghgande.j2mod.modbus.io.ModbusSerialTransaction;
-import com.ghgande.j2mod.modbus.msg.ModbusRequest;
-import com.ghgande.j2mod.modbus.msg.ReadInputRegistersRequest;
-import com.ghgande.j2mod.modbus.msg.ReadInputRegistersResponse;
 import com.ghgande.j2mod.modbus.net.SerialConnection;
 import com.ghgande.j2mod.modbus.util.SerialParameters;
+import java.util.HashSet;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class ModbusMaster {
+public class ModbusMaster implements Runnable {
     private SerialConnection con;
+    private HashSet<ModbusMasterSlave> slaves = new HashSet<ModbusMasterSlave>();
+    private int timePause;
+    public volatile boolean running = true;
 
-    public ModbusMaster(String portName, int baudRate, int dataBits, String parity, int stopbits, String encoding, boolean echo) {
+    public ModbusMaster(String portName, int baudRate, int dataBits, String parity, int stopbits, String encoding, boolean echo, int timePause) {
+        this.timePause = timePause;
         ModbusCoupler.getReference().setUnitID(128);
         SerialParameters params = new SerialParameters();
         params.setPortName(portName);
@@ -40,39 +37,27 @@ public class ModbusMaster {
         con.close();
     }
 
-    public Map<Integer, Integer> requestRead(int unitId, int offset, int count, ModbusFunction function) {
-        int repeat = 1; //a loop for repeating the transaction
-        Map<Integer, Integer> result = new HashMap<Integer, Integer>();
+    public void addModbusSlave(ModbusMasterSlave slave) {
+        slave.setCon(this.con);
+        slaves.add(slave);
+    }
 
-        switch (function) {
-            case INPUT_REGS:
-                ModbusRequest req;
-                ReadInputRegistersResponse resp;
-                req = new ReadInputRegistersRequest(offset, count);
-                req.setUnitID(unitId);
-                req.setHeadless();
-                ModbusSerialTransaction trans = new ModbusSerialTransaction(con);
-                trans.setRequest(req);
-                trans.setTransDelayMS(50);
-                int k = 0;
-                do {
+    @Override
+    public void run() {
+        if (slaves.size() != 0) {
+            openPort();
+            while(running) {
+                for (ModbusMasterSlave slave : slaves) {
+                    slave.launch();
                     try {
-                        trans.execute();
-                    } catch (ModbusException ex) {
+                        Thread.sleep(timePause);
+                    } catch (InterruptedException ex) {
                         ex.printStackTrace();
                     }
-
-                    resp = (ReadInputRegistersResponse) trans.getResponse();
-                    for (int n = 0; n < resp.getWordCount(); n++) {
-                        result.put(offset+n, resp.getRegisterValue(n));
-                    }
-                    k++;
-                } while (k < repeat);
-
-                break;
-            default:
-                return null;
+                }
+            }
         }
-        return result;
+        System.out.println("Поток Modbus завершен.");
+        closePort();
     }
 }
