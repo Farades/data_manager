@@ -1,8 +1,6 @@
 <component name="libraryTable">
   <library name="seroUtils">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/libs/seroUtils.jar!/" />
-    </CLASSES>
+    <CLASSES />
     <JAVADOC />
     <SOURCES />
   </library>

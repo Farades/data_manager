@@ -40,37 +40,39 @@ public class ModbusMaster {
         con.close();
     }
 
-    public Map<Integer, Integer> request(int unitId, int offset, int count, ModbusFunction function) {
+    public Map<Integer, Integer> requestRead(int unitId, int offset, int count, ModbusFunction function) {
         int repeat = 1; //a loop for repeating the transaction
         Map<Integer, Integer> result = new HashMap<Integer, Integer>();
-        ModbusRequest req;
-        ReadInputRegistersResponse resp;
+
         switch (function) {
             case INPUT_REGS:
+                ModbusRequest req;
+                ReadInputRegistersResponse resp;
                 req = new ReadInputRegistersRequest(offset, count);
+                req.setUnitID(unitId);
+                req.setHeadless();
+                ModbusSerialTransaction trans = new ModbusSerialTransaction(con);
+                trans.setRequest(req);
+                trans.setTransDelayMS(50);
+                int k = 0;
+                do {
+                    try {
+                        trans.execute();
+                    } catch (ModbusException ex) {
+                        ex.printStackTrace();
+                    }
+
+                    resp = (ReadInputRegistersResponse) trans.getResponse();
+                    for (int n = 0; n < resp.getWordCount(); n++) {
+                        result.put(offset+n, resp.getRegisterValue(n));
+                    }
+                    k++;
+                } while (k < repeat);
+
                 break;
             default:
                 return null;
         }
-        req.setUnitID(unitId);
-        req.setHeadless();
-        ModbusSerialTransaction trans = new ModbusSerialTransaction(con);
-        trans.setRequest(req);
-        trans.setTransDelayMS(50);
-        int k = 0;
-        do {
-            try {
-                trans.execute();
-            } catch (ModbusException ex) {
-                ex.printStackTrace();
-            }
-
-            resp = (ReadInputRegistersResponse) trans.getResponse();
-            for (int n = 0; n < resp.getWordCount(); n++) {
-                result.put(offset+n, resp.getRegisterValue(n));
-            }
-            k++;
-        } while (k < repeat);
         return result;
     }
 }

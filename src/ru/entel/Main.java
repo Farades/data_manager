@@ -29,12 +29,12 @@ public class Main {
     static class RequestFor implements Runnable {
         volatile boolean running = true;
         private long counter = 0;
-        ModbusMaster mbm = new ModbusMaster("COM3", 19200, 8, "none", 1, "rtu", false);
+        ModbusMaster mbm = new ModbusMaster("COM3", 9600, 8, "none", 1, "rtu", false);
         @Override
         public void run() {
             mbm.openPort();
             while(running) {
-                System.out.println(mbm.request(1, 8, 3, ModbusFunction.INPUT_REGS));
+                System.out.println(mbm.requestRead(3, 0, 10, ModbusFunction.INPUT_REGS));
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException ex) {
