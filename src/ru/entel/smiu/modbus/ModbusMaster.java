@@ -33,6 +33,10 @@ public class ModbusMaster implements Runnable {
         }
     }
 
+    public SerialConnection getCon() {
+        return con;
+    }
+
     public void closePort() {
         con.close();
     }

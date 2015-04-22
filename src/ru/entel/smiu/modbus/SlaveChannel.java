@@ -23,14 +23,18 @@ public class SlaveChannel {
     private int timeOut;
     private Map<Integer, Integer> registers;
 
-    public SlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, SerialConnection con, int timeOut, int slaveID) {
+    public SlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, SerialConnection con, int timeOut) {
         this.name = name;
         this.offset = offset;
         this.length = length;
         this.mbFunc = mbFunc;
         this.con = con;
-        this.slaveID = slaveID;
+        this.timeOut = timeOut;
         registers = new HashMap<Integer, Integer>();
+    }
+
+    public void setSlaveID(int slaveID) {
+        this.slaveID = slaveID;
     }
 
     public synchronized void requset() {
@@ -68,8 +72,18 @@ public class SlaveChannel {
 
     @Override
     public String toString() {
-        String res = "[" + this.name + "]" + registers.toString();
-        res = registers.toString();
-        return res;
+        StringBuffer res = new StringBuffer();
+        res.append("[Channel: " + this.name + "]");
+        res.append(" {");
+        int i = 1;
+        for (Map.Entry<Integer, Integer> entry : registers.entrySet()) {
+            res.append(entry.getKey() + "=" + entry.getValue());
+            if (i != registers.size()) {
+                res.append(", ");
+            }
+            i++;
+        }
+        res.append("}");
+        return res.toString();
     }
 }
