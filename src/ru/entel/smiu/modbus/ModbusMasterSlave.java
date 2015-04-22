@@ -24,12 +24,22 @@ public class ModbusMasterSlave  {
 
     public void launch() {
         for (SlaveChannel channel : channels) {
-            channel.requset();
+            try {
+                channel.requset();
+                channel.setSuccessRead(true);
+            } catch (ModbusRequestException ex) {
+                channel.setSuccessRead(false);
+            } catch (ModbusNoResponseException ex) {
+                channel.setSuccessRead(false);
+            }
         }
         System.out.println(this);
     }
 
-    public void addChannel(SlaveChannel channel) {
+    public void addChannel(SlaveChannel channel) throws ModbusChannelAlreadyExist{
+        if (channels.contains(channel)) {
+            throw new ModbusChannelAlreadyExist();
+        }
         channel.setSlaveID(this.address);
         channels.add(channel);
     }
