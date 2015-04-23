@@ -1,4 +1,4 @@
-package ru.entel.smiu.modbus;
+package ru.entel.smiu.protocols.modbus;
 
 import com.ghgande.j2mod.modbus.net.SerialConnection;
 
@@ -11,7 +11,7 @@ public class ModbusMasterSlave  {
     private String name;
     private SerialConnection con;
     private int address;
-    private HashSet<SlaveChannel> channels = new HashSet<SlaveChannel>();
+    private HashSet<ModbusSlaveChannel> channels = new HashSet<ModbusSlaveChannel>();
 
     public ModbusMasterSlave(int address, String name) {
         this.address = address;
@@ -22,9 +22,11 @@ public class ModbusMasterSlave  {
         this.con = con;
     }
 
-    public void launch() {
-        for (SlaveChannel channel : channels) {
+    public synchronized void launch(SerialConnection con) {
+        this.con = con;
+        for (ModbusSlaveChannel channel : channels) {
             try {
+                channel.setCon(con);
                 channel.requset();
                 channel.setSuccessRead(true);
             } catch (ModbusRequestException ex) {
@@ -36,7 +38,7 @@ public class ModbusMasterSlave  {
         System.out.println(this);
     }
 
-    public void addChannel(SlaveChannel channel) throws ModbusChannelAlreadyExist{
+    public void addChannel(ModbusSlaveChannel channel) throws ModbusChannelAlreadyExist{
         if (channels.contains(channel)) {
             throw new ModbusChannelAlreadyExist();
         }
@@ -49,7 +51,7 @@ public class ModbusMasterSlave  {
         StringBuffer res = new StringBuffer();
         res.append("[" + this.name + "(" + this.address + ")" + "]\n");
         int i = 1;
-        for (SlaveChannel channel : channels) {
+        for (ModbusSlaveChannel channel : channels) {
             res.append("\t");
             res.append(channel.toString());
             if (i != channels.size()) {

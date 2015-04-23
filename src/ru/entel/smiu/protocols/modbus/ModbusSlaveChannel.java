@@ -1,23 +1,19 @@
-package ru.entel.smiu.modbus;
+package ru.entel.smiu.protocols.modbus;
 
 import com.ghgande.j2mod.modbus.ModbusException;
 import com.ghgande.j2mod.modbus.ModbusIOException;
-import com.ghgande.j2mod.modbus.cmd.ReadCoilsTest;
-import com.ghgande.j2mod.modbus.cmd.ReadDiscretesTest;
-import com.ghgande.j2mod.modbus.cmd.ReadHoldingRegistersTest;
 import com.ghgande.j2mod.modbus.io.ModbusSerialTransaction;
 import com.ghgande.j2mod.modbus.msg.*;
 import com.ghgande.j2mod.modbus.net.SerialConnection;
 import com.ghgande.j2mod.modbus.procimg.Register;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Created by farades on 20.04.2015.
  */
-public class SlaveChannel {
+public class ModbusSlaveChannel {
     private String name;
     private ModbusFunction mbFunc;
     private int offset;
@@ -28,7 +24,7 @@ public class SlaveChannel {
     private boolean successRead = false; //Флаг, показывающий успех последнего запроса по этому каналу
     private Map<Integer, Integer> registers;
 
-    public SlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, SerialConnection con, int timeOut) {
+    public ModbusSlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, int timeOut) {
         this.name = name;
         this.offset = offset;
         this.length = length;
@@ -44,6 +40,10 @@ public class SlaveChannel {
 
     public String getName() {
         return name;
+    }
+
+    public void setCon(SerialConnection con) {
+        this.con = con;
     }
 
     public boolean isSuccessRead() {
@@ -179,7 +179,7 @@ public class SlaveChannel {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SlaveChannel that = (SlaveChannel) o;
+        ModbusSlaveChannel that = (ModbusSlaveChannel) o;
 
         if (length != that.length) return false;
         if (offset != that.offset) return false;

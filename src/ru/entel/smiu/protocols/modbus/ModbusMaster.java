@@ -1,4 +1,8 @@
-package ru.entel.smiu.modbus;
+package ru.entel.smiu.protocols.modbus;
+
+/*
+ * Created by Farades on 22.04.2015.
+ */
 
 import com.ghgande.j2mod.modbus.ModbusCoupler;
 import com.ghgande.j2mod.modbus.net.SerialConnection;
@@ -33,10 +37,6 @@ public class ModbusMaster implements Runnable {
         }
     }
 
-    public SerialConnection getCon() {
-        return con;
-    }
-
     public void closePort() {
         con.close();
     }
@@ -52,7 +52,7 @@ public class ModbusMaster implements Runnable {
             openPort();
             while(running) {
                 for (ModbusMasterSlave slave : slaves) {
-                    slave.launch();
+                    slave.launch(this.con);
                     try {
                         Thread.sleep(timePause);
                     } catch (InterruptedException ex) {

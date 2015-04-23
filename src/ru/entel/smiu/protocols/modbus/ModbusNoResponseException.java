@@ -1,7 +1,8 @@
-package ru.entel.smiu.modbus;
+package ru.entel.smiu.protocols.modbus;
 
 /**
- * Created by Артем on 22.04.2015.
+ * Created by Farades on 22.04.2015.
+ *
  */
 public class ModbusNoResponseException extends Exception {
     public ModbusNoResponseException(String msg) {
