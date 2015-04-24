@@ -6,8 +6,10 @@ import com.ghgande.j2mod.modbus.io.ModbusSerialTransaction;
 import com.ghgande.j2mod.modbus.msg.*;
 import com.ghgande.j2mod.modbus.net.SerialConnection;
 import com.ghgande.j2mod.modbus.procimg.Register;
+import com.ghgande.j2mod.modbus.util.ModbusUtil;
 import ru.entel.smiu.protocols.modbus.exceptions.ModbusIllegalRegTypeException;
 import ru.entel.smiu.protocols.modbus.exceptions.ModbusNoResponseException;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusOddQuantityRegException;
 import ru.entel.smiu.protocols.modbus.exceptions.ModbusRequestException;
 import ru.entel.smiu.protocols.modbus.registers.*;
 
@@ -29,7 +31,10 @@ public class ModbusSlaveChannel {
     private String exceptionRequest; //Сообщение, показывающий успех последнего запроса по этому каналу
     private Map<Integer, ModbusAbstractRegister> registers;
 
-    public ModbusSlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, ModbusRegType regType, int timeOut) {
+    public ModbusSlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, ModbusRegType regType, int timeOut) throws ModbusOddQuantityRegException{
+        if (regType == ModbusRegType.FLOAT32 && (length % 2 != 0)) {
+            throw new ModbusOddQuantityRegException("Odd quantity reg's for FLOAT32 channel: " + name);
+        }
         this.name = name;
         this.offset = offset;
         this.length = length;
@@ -151,16 +156,19 @@ public class ModbusSlaveChannel {
                     } else if(tempResp instanceof ReadMultipleRegistersResponse) {
                         ReadMultipleRegistersResponse resp = (ReadMultipleRegistersResponse)tempResp;
                         Register[] values = resp.getRegisters();
-                        for (int i = 0; i < values.length; i++) {
-                            if (this.regType == ModbusRegType.INT16) {
+
+                        if (this.regType == ModbusRegType.INT16) {
+                            for (int i = 0; i < values.length; i++) {
                                 ModbusInt16Register reg = new ModbusInt16Register(this.offset + i, values[i].getValue());
                                 registers.put(this.offset + i, reg);
-                            } else if (this.regType == ModbusRegType.FLOAT32) {
-                                //TODO
-                                //ModbusFloat32Register reg = new ModbusFloat32Register(this.offset + i, values[i].getValue());
-                            } else {
-                                throw new ModbusIllegalRegTypeException("Illegal reg type for READ_HOLDING_REGS_3");
                             }
+                        } else if (this.regType == ModbusRegType.FLOAT32) {
+                            for (int i = 0; i < resp.getWordCount() - 1; i+=2) {
+                                ModbusFloat32Register reg = new ModbusFloat32Register(offset + i, values[i].getValue(), values[i + 1].getValue());
+                                registers.put(this.offset + i, reg);
+                            }
+                        } else {
+                            throw new ModbusIllegalRegTypeException("Illegal reg type for READ_HOLDING_REGS_3");
                         }
                     }
                 } catch (ModbusIOException ex) {
@@ -174,15 +182,18 @@ public class ModbusSlaveChannel {
                 try {
                     trans.execute();
                     ReadInputRegistersResponse resp = (ReadInputRegistersResponse) trans.getResponse();
-                    for (int n = 0; n < resp.getWordCount(); n++) {
-                        if (this.regType == ModbusRegType.INT16) {
+                    if (this.regType == ModbusRegType.INT16) {
+                        for (int n = 0; n < resp.getWordCount(); n++) {
                             ModbusInt16Register reg = new ModbusInt16Register(this.offset + n, resp.getRegisterValue(n));
                             registers.put(offset + n, reg);
-                        } else if (this.regType == ModbusRegType.FLOAT32) {
-                            //TODO
-                        } else {
-                            throw new ModbusIllegalRegTypeException("Illegal reg type for READ_INPUT_REGS_4");
                         }
+                    } else if (this.regType == ModbusRegType.FLOAT32) {
+                        for (int i = 0; i < resp.getWordCount()-1; i+=2) {
+                            ModbusFloat32Register reg = new ModbusFloat32Register(offset + i, resp.getRegisterValue(i), resp.getRegisterValue(i+1));
+                            registers.put(this.offset + i, reg);
+                        }
+                    } else {
+                        throw new ModbusIllegalRegTypeException("Illegal reg type for READ_INPUT_REGS_4");
                     }
                 } catch (ModbusIOException ex) {
                     throw new ModbusRequestException(this);

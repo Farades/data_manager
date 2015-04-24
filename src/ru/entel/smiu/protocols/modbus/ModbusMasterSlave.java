@@ -45,8 +45,6 @@ public class ModbusMasterSlave  {
                 channel.setExceptionRequest(ex.getMessage());
             }
         }
-        //System.out.print(this.name + " ");
-        //System.out.println(registersAllChannel);
         System.out.println(this);
     }
 
