@@ -6,6 +6,7 @@ import com.ghgande.j2mod.modbus.io.ModbusSerialTransaction;
 import com.ghgande.j2mod.modbus.msg.*;
 import com.ghgande.j2mod.modbus.net.SerialConnection;
 import com.ghgande.j2mod.modbus.procimg.Register;
+import ru.entel.smiu.protocols.modbus.registers.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,22 +17,27 @@ import java.util.Map;
 public class ModbusSlaveChannel {
     private String name;
     private ModbusFunction mbFunc;
+    private ModbusRegType regType;
     private int offset;
     private int length;
     private SerialConnection con;
     private int slaveID;
     private int timeOut;
     private boolean successRead = false; //Флаг, показывающий успех последнего запроса по этому каналу
-    private Map<Integer, Integer> registers;
+    private Map<Integer, ModbusAbstractRegister> registers;
 
-    public ModbusSlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, int timeOut) {
+    public ModbusSlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, ModbusRegType regType, int timeOut) {
         this.name = name;
         this.offset = offset;
         this.length = length;
         this.mbFunc = mbFunc;
-        this.con = con;
+        this.regType = regType;
         this.timeOut = timeOut;
-        registers = new HashMap<Integer, Integer>();
+        registers = new HashMap<Integer, ModbusAbstractRegister>();
+    }
+
+    public Map<Integer, ModbusAbstractRegister> getRegisters() {
+        return registers;
     }
 
     public void setSlaveID(int slaveID) {
@@ -54,7 +60,7 @@ public class ModbusSlaveChannel {
         this.successRead = successRead;
     }
 
-    public synchronized void requset() throws ModbusRequestException, ModbusNoResponseException {
+    public synchronized void requset() throws ModbusRequestException, ModbusNoResponseException, ModbusIllegalRegTypeException {
         ModbusRequest req;
 
         switch (mbFunc) {
@@ -90,7 +96,8 @@ public class ModbusSlaveChannel {
                     trans.execute();
                     ReadCoilsResponse resp = (ReadCoilsResponse) trans.getResponse();
                     for (int i = 0; i < this.length; i++) {
-                        registers.put(offset + i, resp.getCoils().getBit(i) ? 1 : 0);
+                        ModbusBitRegister reg = new ModbusBitRegister(offset + i, resp.getCoils().getBit(i));
+                        registers.put(offset + i, reg);
                     }
                 } catch (ModbusIOException ex) {
                     throw new ModbusRequestException(this);
@@ -104,7 +111,8 @@ public class ModbusSlaveChannel {
                     trans.execute();
                     ReadInputDiscretesResponse resp = (ReadInputDiscretesResponse) trans.getResponse();
                     for (int i = 0; i < this.length; i++) {
-                        registers.put(offset + i, resp.getDiscretes().getBit(i) ? 1 : 0);
+                        ModbusBitRegister reg = new ModbusBitRegister(offset + i, resp.getDiscretes().getBit(i));
+                        registers.put(offset + i, reg);
                     }
                 } catch (ModbusIOException ex) {
                     throw new ModbusRequestException(this);
@@ -127,7 +135,15 @@ public class ModbusSlaveChannel {
                         ReadMultipleRegistersResponse resp = (ReadMultipleRegistersResponse)tempResp;
                         Register[] values = resp.getRegisters();
                         for (int i = 0; i < values.length; i++) {
-                            registers.put(offset + i, values[i].getValue());
+                            if (this.regType == ModbusRegType.INT16) {
+                                ModbusInt16Register reg = new ModbusInt16Register(this.offset + i, values[i].getValue());
+                                registers.put(this.offset + i, reg);
+                            } else if (this.regType == ModbusRegType.FLOAT32) {
+                                //TODO
+                                //ModbusFloat32Register reg = new ModbusFloat32Register(this.offset + i, values[i].getValue());
+                            } else {
+                                throw new ModbusIllegalRegTypeException("Illegal reg type for READ_HOLDING_REGS_3");
+                            }
                         }
                     }
                 } catch (ModbusIOException ex) {
@@ -142,7 +158,14 @@ public class ModbusSlaveChannel {
                     trans.execute();
                     ReadInputRegistersResponse resp = (ReadInputRegistersResponse) trans.getResponse();
                     for (int n = 0; n < resp.getWordCount(); n++) {
-                        registers.put(offset + n, resp.getRegisterValue(n));
+                        if (this.regType == ModbusRegType.INT16) {
+                            ModbusInt16Register reg = new ModbusInt16Register(this.offset + n, resp.getRegisterValue(n));
+                            registers.put(offset + n, reg);
+                        } else if (this.regType == ModbusRegType.FLOAT32) {
+                            //TODO
+                        } else {
+                            throw new ModbusIllegalRegTypeException("Illegal reg type for READ_INPUT_REGS_4");
+                        }
                     }
                 } catch (ModbusIOException ex) {
                     throw new ModbusRequestException(this);
@@ -160,7 +183,7 @@ public class ModbusSlaveChannel {
             res.append("[Channel: " + this.name + "]");
             res.append(" {");
             int i = 1;
-            for (Map.Entry<Integer, Integer> entry : registers.entrySet()) {
+            for (Map.Entry<Integer, ModbusAbstractRegister> entry : registers.entrySet()) {
                 res.append(entry.getKey() + "=" + entry.getValue());
                 if (i != registers.size()) {
                     res.append(", ");

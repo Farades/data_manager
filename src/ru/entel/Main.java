@@ -1,6 +1,7 @@
 package ru.entel;
 
 import ru.entel.smiu.protocols.modbus.*;
+import ru.entel.smiu.protocols.modbus.registers.ModbusRegType;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,8 +29,8 @@ public class Main {
 
                 ModbusMasterSlave slave_1 = new ModbusMasterSlave(1, "V1");
                 try {
-                    slave_1.addChannel(new ModbusSlaveChannel("INPUT", 1, 10, ModbusFunction.READ_INPUT_REGS_4, 50));
-                    slave_1.addChannel(new ModbusSlaveChannel("Holding", 1, 10, ModbusFunction.READ_HOLDING_REGS_3, 50));
+                    slave_1.addChannel(new ModbusSlaveChannel("INPUT", 21, 10, ModbusFunction.READ_INPUT_REGS_4, ModbusRegType.INT16, 50));
+                    slave_1.addChannel(new ModbusSlaveChannel("Holding", 1, 10, ModbusFunction.READ_HOLDING_REGS_3 ,ModbusRegType.INT16, 50));
                 } catch (ModbusChannelAlreadyExist ex) {
                     System.out.println("Repeated slave channel.");
                 }
@@ -37,8 +38,8 @@ public class Main {
 
                 ModbusMasterSlave slave_2 = new ModbusMasterSlave(5, "Amp");
                 try {
-                    slave_2.addChannel(new ModbusSlaveChannel("COIL", 1, 10, ModbusFunction.READ_COIL_REGS_1, 50));
-                    slave_2.addChannel(new ModbusSlaveChannel("DISCRETE", 1, 17, ModbusFunction.READ_DISCRETE_INPUT_2, 50));
+                    slave_2.addChannel(new ModbusSlaveChannel("COIL", 1, 10, ModbusFunction.READ_COIL_REGS_1, ModbusRegType.INT16, 50));
+                    slave_2.addChannel(new ModbusSlaveChannel("DISCRETE", 1, 17, ModbusFunction.READ_DISCRETE_INPUT_2, ModbusRegType.BIT, 50));
                 } catch (ModbusChannelAlreadyExist ex) {
                     System.out.println("Repeated slave channel.");
                 }

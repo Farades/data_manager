@@ -2,6 +2,7 @@ package ru.entel.smiu.protocols.modbus;
 
 import com.ghgande.j2mod.modbus.net.SerialConnection;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 /**
@@ -12,6 +13,7 @@ public class ModbusMasterSlave  {
     private SerialConnection con;
     private int address;
     private HashSet<ModbusSlaveChannel> channels = new HashSet<ModbusSlaveChannel>();
+    private HashMap<Integer, Integer> registersAllChannel = new HashMap<Integer, Integer>();
 
     public ModbusMasterSlave(int address, String name) {
         this.address = address;
@@ -29,12 +31,19 @@ public class ModbusMasterSlave  {
                 channel.setCon(con);
                 channel.requset();
                 channel.setSuccessRead(true);
+                //registersAllChannel.putAll(channel.getRegisters());
+                System.out.println("");
             } catch (ModbusRequestException ex) {
                 channel.setSuccessRead(false);
             } catch (ModbusNoResponseException ex) {
                 channel.setSuccessRead(false);
+            } catch (ModbusIllegalRegTypeException ex) {
+                channel.setSuccessRead(false);
+                System.out.println(ex.getMessage());
             }
         }
+        //System.out.print(this.name + " ");
+        //System.out.println(registersAllChannel);
         System.out.println(this);
     }
 
