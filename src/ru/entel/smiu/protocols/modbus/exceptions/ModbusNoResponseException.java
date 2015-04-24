@@ -1,4 +1,4 @@
-package ru.entel.smiu.protocols.modbus;
+package ru.entel.smiu.protocols.modbus.exceptions;
 
 /**
  * Created by Farades on 22.04.2015.

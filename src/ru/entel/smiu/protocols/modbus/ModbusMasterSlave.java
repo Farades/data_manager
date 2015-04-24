@@ -1,6 +1,11 @@
 package ru.entel.smiu.protocols.modbus;
 
 import com.ghgande.j2mod.modbus.net.SerialConnection;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusChannelAlreadyExistException;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusIllegalRegTypeException;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusNoResponseException;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusRequestException;
+import ru.entel.smiu.protocols.modbus.registers.ModbusAbstractRegister;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,7 +18,7 @@ public class ModbusMasterSlave  {
     private SerialConnection con;
     private int address;
     private HashSet<ModbusSlaveChannel> channels = new HashSet<ModbusSlaveChannel>();
-    private HashMap<Integer, Integer> registersAllChannel = new HashMap<Integer, Integer>();
+    private HashMap<Integer, ModbusAbstractRegister> registersAllChannel = new HashMap<Integer, ModbusAbstractRegister>();
 
     public ModbusMasterSlave(int address, String name) {
         this.address = address;
@@ -30,16 +35,14 @@ public class ModbusMasterSlave  {
             try {
                 channel.setCon(con);
                 channel.requset();
-                channel.setSuccessRead(true);
-                //registersAllChannel.putAll(channel.getRegisters());
-                System.out.println("");
+                channel.setExceptionRequest(null);
+                registersAllChannel.putAll(channel.getRegisters());
             } catch (ModbusRequestException ex) {
-                channel.setSuccessRead(false);
+                channel.setExceptionRequest(ex.getMessage());
             } catch (ModbusNoResponseException ex) {
-                channel.setSuccessRead(false);
+                channel.setExceptionRequest(ex.getMessage());
             } catch (ModbusIllegalRegTypeException ex) {
-                channel.setSuccessRead(false);
-                System.out.println(ex.getMessage());
+                channel.setExceptionRequest(ex.getMessage());
             }
         }
         //System.out.print(this.name + " ");
@@ -47,9 +50,10 @@ public class ModbusMasterSlave  {
         System.out.println(this);
     }
 
-    public void addChannel(ModbusSlaveChannel channel) throws ModbusChannelAlreadyExist{
+    public void addChannel(ModbusSlaveChannel channel) throws ModbusChannelAlreadyExistException {
         if (channels.contains(channel)) {
-            throw new ModbusChannelAlreadyExist();
+            throw new ModbusChannelAlreadyExistException("Channel with function: " + channel.getMbFunc() +
+                    "; offset: " + channel.getOffset() +  "; length: " + channel.getLength() + " already exist.");
         }
         channel.setSlaveID(this.address);
         channels.add(channel);

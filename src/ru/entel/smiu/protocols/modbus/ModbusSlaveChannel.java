@@ -6,6 +6,9 @@ import com.ghgande.j2mod.modbus.io.ModbusSerialTransaction;
 import com.ghgande.j2mod.modbus.msg.*;
 import com.ghgande.j2mod.modbus.net.SerialConnection;
 import com.ghgande.j2mod.modbus.procimg.Register;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusIllegalRegTypeException;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusNoResponseException;
+import ru.entel.smiu.protocols.modbus.exceptions.ModbusRequestException;
 import ru.entel.smiu.protocols.modbus.registers.*;
 
 import java.util.HashMap;
@@ -23,7 +26,7 @@ public class ModbusSlaveChannel {
     private SerialConnection con;
     private int slaveID;
     private int timeOut;
-    private boolean successRead = false; //Флаг, показывающий успех последнего запроса по этому каналу
+    private String exceptionRequest; //Сообщение, показывающий успех последнего запроса по этому каналу
     private Map<Integer, ModbusAbstractRegister> registers;
 
     public ModbusSlaveChannel(String name, int offset, int length, ModbusFunction mbFunc, ModbusRegType regType, int timeOut) {
@@ -40,6 +43,18 @@ public class ModbusSlaveChannel {
         return registers;
     }
 
+    public int getOffset() {
+        return offset;
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public ModbusFunction getMbFunc() {
+        return mbFunc;
+    }
+
     public void setSlaveID(int slaveID) {
         this.slaveID = slaveID;
     }
@@ -52,12 +67,8 @@ public class ModbusSlaveChannel {
         this.con = con;
     }
 
-    public boolean isSuccessRead() {
-        return successRead;
-    }
-
-    public void setSuccessRead(boolean successRead) {
-        this.successRead = successRead;
+    public void setExceptionRequest(String exceptionRequest) {
+        this.exceptionRequest = exceptionRequest;
     }
 
     public synchronized void requset() throws ModbusRequestException, ModbusNoResponseException, ModbusIllegalRegTypeException {
@@ -92,6 +103,9 @@ public class ModbusSlaveChannel {
 
         switch (mbFunc) {
             case READ_COIL_REGS_1: {
+                if (this.regType != ModbusRegType.BIT) {
+                    throw new ModbusIllegalRegTypeException("Illegal reg type for READ_COIL_REGS_1");
+                }
                 try {
                     trans.execute();
                     ReadCoilsResponse resp = (ReadCoilsResponse) trans.getResponse();
@@ -107,6 +121,9 @@ public class ModbusSlaveChannel {
                 break;
             }
             case READ_DISCRETE_INPUT_2: {
+                if (this.regType != ModbusRegType.BIT) {
+                    throw new ModbusIllegalRegTypeException("Illegal reg type for READ_DISCRETE_INPUT_2");
+                }
                 try {
                     trans.execute();
                     ReadInputDiscretesResponse resp = (ReadInputDiscretesResponse) trans.getResponse();
@@ -179,8 +196,8 @@ public class ModbusSlaveChannel {
     @Override
     public String toString() {
         StringBuffer res = new StringBuffer();
-        if (successRead) {
-            res.append("[Channel: " + this.name + "]");
+        if (exceptionRequest == null) {
+            res.append("[" + this.name + "]");
             res.append(" {");
             int i = 1;
             for (Map.Entry<Integer, ModbusAbstractRegister> entry : registers.entrySet()) {
@@ -192,7 +209,7 @@ public class ModbusSlaveChannel {
             }
             res.append("}");
         } else {
-            res.append("[" + this.name + "] Failed to read");
+            res.append("[" + this.name + "] " + this.exceptionRequest);
         }
         return res.toString();
     }
