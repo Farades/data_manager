@@ -27,7 +27,7 @@ public class Main {
                 mbm.running = false;
             }
             else if (temp.equals("go")) {
-                mbm = new ModbusMaster("COM2", 19200, 8, "none", 1, "rtu", false, 500);
+                mbm = new ModbusMaster("COM2", 19200, 8, "none", 1, "rtu", false, 200);
 
                 ModbusMasterSlave slave_1 = new ModbusMasterSlave(1, "V1");
                 try {
